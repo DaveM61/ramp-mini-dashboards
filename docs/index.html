@@ -1,142 +1,142 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RAMP Gauge</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RAMP Gauge</title>
 
-  <!-- iOS / Home Screen -->
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="RAMP Gauge" />
-  <meta name="theme-color" content="#020617" />
-  <link rel="apple-touch-icon" href="icon.png" />
+<style>
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #0f172a;
+    color: #e5e7eb;
+}
 
-  <style>
-    :root {
-      --bg: #0f172a;
-      --panel: #020617;
-      --card: #020617;
-      --text: #e5e7eb;
-      --muted: #9ca3af;
-      --negative: #6b1a1a;
-    }
+/* Header */
+.header {
+    padding: 16px;
+    text-align: center;
+    font-size: 22px;
+    font-weight: 600;
+    background: #020617;
+}
 
-    * {
-      box-sizing: border-box;
-    }
+/* Hero */
+.hero {
+    margin: 16px;
+    padding: 20px;
+    background: #020617;
+    border-radius: 16px;
+    text-align: center;
+}
 
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: var(--bg);
-      color: var(--text);
-    }
+.hero-label {
+    font-size: 14px;
+    opacity: 0.8;
+}
 
-    .header {
-      padding: 16px;
-      text-align: center;
-      font-size: 22px;
-      font-weight: 600;
-      background: var(--panel);
-    }
+.hero-value {
+    margin-top: 6px;
+    font-size: 36px;
+    font-weight: 700;
+}
 
-    .meta {
-      text-align: center;
-      font-size: 12px;
-      color: var(--muted);
-      margin: 8px 0 4px;
-    }
+/* Grid */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 16px;
+}
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      padding: 12px;
-      max-width: 640px;
-      margin: 0 auto;
-    }
+/* Cards */
+.card {
+    background: #020617;
+    border-radius: 14px;
+    padding: 16px;
+    text-align: center;
+}
 
-    .card {
-      background: var(--card);
-      border-radius: 14px;
-      padding: 14px;
-      text-align: center;
-      min-height: 88px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
+.card.negative {
+    background: #7f1d1d;
+}
 
-    .card.negative {
-      background: var(--negative);
-    }
+.label {
+    font-size: 14px;
+    opacity: 0.85;
+}
 
-    .label {
-      font-size: 12px;
-      color: var(--muted);
-    }
+.value {
+    margin-top: 8px;
+    font-size: 26px;
+    font-weight: 700;
+}
 
-    .value {
-      margin-top: 4px;
-      font-size: 24px;
-      font-weight: 700;
-      letter-spacing: 0.1px;
-    }
-
-    .footer {
-      height: 8px;
-    }
-  </style>
+.footer {
+    text-align: center;
+    font-size: 12px;
+    opacity: 0.6;
+    padding: 12px 0 20px;
+}
+</style>
 </head>
 
 <body>
-  <div class="header">RAMP Gauge</div>
-  <div id="meta" class="meta"></div>
 
-  <div id="grid" class="grid"></div>
+<div class="header">RAMP Gauge</div>
 
-  <div class="footer"></div>
+<div class="hero">
+    <div class="hero-label">Total Available</div>
+    <div id="heroValue" class="hero-value">$—</div>
+</div>
 
-  <script>
-    function fmt(n) {
-      return Math.round(n).toLocaleString();
-    }
+<div id="grid" class="grid"></div>
 
-    fetch("data/ramp_gauge.json", { cache: "no-store" })
-      .then(r => {
-        if (!r.ok) throw new Error("Failed to load JSON");
-        return r.json();
-      })
-      .then(data => {
-        const meta = document.getElementById("meta");
-        meta.textContent = `As of ${data.as_of}`;
+<div id="asOf" class="footer"></div>
 
+<script>
+fetch("data/ramp_gauge.json")
+    .then(r => r.json())
+    .then(data => {
+        // Hero total
+        const total = data.total_balance ?? 0;
+        document.getElementById("heroValue").textContent =
+            total.toLocaleString("en-US", {
+                style: "currency",
+                currency: "USD",
+                maximumFractionDigits: 0
+            });
+
+        // Category cards
         const grid = document.getElementById("grid");
-        grid.innerHTML = "";
-
         data.categories.forEach(c => {
-          const card = document.createElement("div");
-          card.className = "card" + (c.balance < 0 ? " negative" : "");
+            const card = document.createElement("div");
+            card.className = "card" + (c.balance < 0 ? " negative" : "");
 
-          card.innerHTML = `
-            <div class="label">${c.label}</div>
-            <div class="value">$${fmt(c.balance)}</div>
-          `;
+            card.innerHTML = `
+                <div class="label">${c.label}</div>
+                <div class="value">
+                    ${c.balance.toLocaleString("en-US", {
+                        style: "currency",
+                        currency: "USD",
+                        maximumFractionDigits: 0
+                    })}
+                </div>
+            `;
 
-          grid.appendChild(card);
+            grid.appendChild(card);
         });
-      })
-      .catch(err => {
-        const grid = document.getElementById("grid");
-        grid.innerHTML = `
-          <div class="card negative">
-            <div class="label">Error</div>
-            <div class="value">Data unavailable</div>
-          </div>
-        `;
+
+        // As-of footer
+        document.getElementById("asOf").textContent =
+            "As of " + data.as_of;
+    })
+    .catch(err => {
+        document.getElementById("heroValue").textContent = "Error";
         console.error(err);
-      });
-  </script>
+    });
+</script>
+
 </body>
 </html>
