@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>RAMP Voyage</title>
+
+<!-- iPhone Home Screen icon -->
+<link rel="apple-touch-icon" href="voyage.png" />
+<link rel="icon" href="voyage.png" />
+
+<style>
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #042f2e;
+  color: #e5e7eb;
+}
+
+.header {
+  padding: 16px;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 600;
+  background: #022c22;
+}
+
+.subheader {
+  text-align: center;
+  font-size: 14px;
+  opacity: 0.85;
+  margin: 6px 0 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 16px;
+}
+
+.card {
+  background: #022c22;
+  border-radius: 14px;
+  padding: 16px;
+  text-align: center;
+}
+
+.card.negative {
+  background: #7f1d1d;
+}
+
+.label {
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+.value {
+  margin-top: 8px;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.footer {
+  text-align: center;
+  font-size: 12px;
+  opacity: 0.65;
+  padding: 12px 0 20px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">RAMP Voyage</div>
+<div id="tripInfo" class="subheader"></div>
+
+<div id="grid" class="grid"></div>
+
+<div id="asOf" class="footer"></div>
+
+<script>
+fetch("data/ramp_voyage.json")
+  .then(r => r.json())
+  .then(data => {
+    const detail = data.trip_detail ? " — " + data.trip_detail : "";
+    document.getElementById("tripInfo").textContent = data.trip_key + detail;
+
+    const grid = document.getElementById("grid");
+    grid.innerHTML = "";
+
+    data.categories.forEach(c => {
+      const card = document.createElement("div");
+      card.className = "card" + (c.balance < 0 ? " negative" : "");
+
+      card.innerHTML =
+        '<div class="label">' + c.key + '</div>' +
+        '<div class="value">' +
+          c.balance.toLocaleString("en-US", {
+            style: "currency",
+            currency: "USD",
+            maximumFractionDigits: 0
+          }) +
+        '</div>';
+
+      grid.appendChild(card);
+    });
+
+    document.getElementById("asOf").textContent = "As of " + data.as_of;
+  })
+  .catch(err => {
+    console.error(err);
+    document.getElementById("tripInfo").textContent = "Unable to load trip data";
+  });
+</script>
+
+</body>
+</html>
