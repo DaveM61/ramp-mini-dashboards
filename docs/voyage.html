@@ -81,7 +81,7 @@ body {
 <div id="asOf" class="footer"></div>
 
 <script>
-fetch("data/ramp_voyage.json")
+fetch("data/ramp_voyage.json?v=" + Date.now())
   .then(r => r.json())
   .then(data => {
     const detail = data.trip_detail ? " — " + data.trip_detail : "";
