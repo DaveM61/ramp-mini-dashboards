@@ -4,8 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>RAMP Gauge</title>
-
 <style>
+* { box-sizing: border-box; }
+
 body {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -13,7 +14,6 @@ body {
     color: #e5e7eb;
 }
 
-/* Header */
 .header {
     padding: 16px;
     text-align: center;
@@ -22,121 +22,243 @@ body {
     background: #020617;
 }
 
-/* Hero */
+/* Hero - Total Available */
 .hero {
-    margin: 16px;
+    margin: 16px 16px 0;
     padding: 20px;
     background: #020617;
     border-radius: 16px;
     text-align: center;
 }
+.hero-label { font-size: 14px; opacity: 0.8; }
+.hero-value  { margin-top: 6px; font-size: 36px; font-weight: 700; }
 
-.hero-label {
-    font-size: 14px;
-    opacity: 0.8;
+/* Month progress bar under hero */
+.month-bar-wrap {
+    margin: 10px 0 0;
+}
+.month-bar-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    opacity: 0.55;
+    margin-bottom: 4px;
+}
+.month-bar-track {
+    height: 4px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 2px;
+}
+.month-bar-fill {
+    height: 4px;
+    background: rgba(255,255,255,0.35);
+    border-radius: 2px;
 }
 
-.hero-value {
-    margin-top: 6px;
-    font-size: 36px;
-    font-weight: 700;
-}
-
-/* Grid */
+/* Category grid */
 .grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
-    padding: 16px;
+    padding: 12px 16px;
 }
 
-/* Cards */
+/* Category cards */
 .card {
     background: #020617;
     border-radius: 14px;
-    padding: 16px;
-    text-align: center;
+    padding: 14px 14px 10px;
+    text-align: left;
+    border: 1px solid rgba(255,255,255,0.04);
 }
+.card.over  { border-color: rgba(239,68,68,0.5); }
+.card.tight { border-color: rgba(245,158,11,0.5); }
 
-.card.negative {
-    background: #7f1d1d;
-}
+.card-label { font-size: 12px; opacity: 0.75; margin-bottom: 2px; }
 
-.label {
-    font-size: 14px;
-    opacity: 0.85;
-}
-
-.value {
-    margin-top: 8px;
-    font-size: 26px;
+.card-value {
+    font-size: 24px;
     font-weight: 700;
+    margin-bottom: 8px;
 }
+.card.over  .card-value { color: #f87171; }
+.card.tight .card-value { color: #fbbf24; }
+
+/* Dual pace bar */
+.pace-track {
+    height: 3px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    position: relative;
+    margin-bottom: 7px;
+}
+.pace-month {
+    position: absolute;
+    top: 0; left: 0;
+    height: 3px;
+    background: rgba(255,255,255,0.28);
+    border-radius: 2px;
+}
+.pace-spent {
+    position: absolute;
+    top: 0; left: 0;
+    height: 3px;
+    border-radius: 2px;
+}
+.pace-spent.ok    { background: #10b981; }
+.pace-spent.tight { background: #f59e0b; }
+.pace-spent.over  { background: #ef4444; }
+
+/* Card footer row */
+.card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 20px;
+}
+.badge.ok    { background: rgba(16,185,129,0.18); color: #6ee7b7; }
+.badge.tight { background: rgba(245,158,11,0.18); color: #fcd34d; }
+.badge.over  { background: rgba(239,68,68,0.18);  color: #fca5a5; }
+
+.card-proj { font-size: 10px; opacity: 0.45; }
+
+/* Contingency tile - full width below grid */
+.contingency {
+    margin: 0 16px 4px;
+    padding: 14px 18px;
+    background: #020617;
+    border-radius: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid rgba(255,255,255,0.04);
+}
+.contingency-label { font-size: 13px; opacity: 0.75; }
+.contingency-value { font-size: 22px; font-weight: 700; }
 
 .footer {
     text-align: center;
     font-size: 12px;
-    opacity: 0.6;
-    padding: 12px 0 20px;
+    opacity: 0.5;
+    padding: 10px 0 24px;
 }
 </style>
 </head>
 
 <body>
-
 <div class="header">RAMP Gauge</div>
 
 <div class="hero">
     <div class="hero-label">Total Available</div>
     <div id="heroValue" class="hero-value">$—</div>
+    <div class="month-bar-wrap">
+        <div class="month-bar-meta">
+            <span id="monthLabel">Month</span>
+            <span id="monthPct">—</span>
+        </div>
+        <div class="month-bar-track">
+            <div id="monthBarFill" class="month-bar-fill" style="width:0%"></div>
+        </div>
+    </div>
 </div>
 
 <div id="grid" class="grid"></div>
 
+<div id="contingencyTile" class="contingency" style="display:none">
+    <span class="contingency-label">Budget Contingency</span>
+    <span id="contingencyValue" class="contingency-value">$—</span>
+</div>
+
 <div id="asOf" class="footer"></div>
 
 <script>
+function fmt(n) {
+    return Math.round(n).toLocaleString("en-US", {
+        style: "currency", currency: "USD", maximumFractionDigits: 0
+    });
+}
+
 fetch("data/ramp_gauge.json")
     .then(r => r.json())
     .then(data => {
-        // Hero total
-        const total = data.total_balance ?? 0;
+
+        // --- Hero ---
         document.getElementById("heroValue").textContent =
-            total.toLocaleString("en-US", {
-                style: "currency",
-                currency: "USD",
-                maximumFractionDigits: 0
-            });
+            fmt(data.total_balance ?? 0);
 
-        // Category cards
+        // --- Month progress bar ---
+        const dom  = data.day_of_month  ?? new Date().getDate();
+        const dim  = data.days_in_month ?? 30;
+        const monthPct = Math.round((dom / dim) * 100);
+
+        document.getElementById("monthLabel").textContent =
+            "Day " + dom + " of " + dim;
+        document.getElementById("monthPct").textContent = monthPct + "%";
+        document.getElementById("monthBarFill").style.width = monthPct + "%";
+
+        // --- Category cards ---
         const grid = document.getElementById("grid");
-        data.categories.forEach(c => {
-            const card = document.createElement("div");
-            card.className = "card" + (c.balance < 0 ? " negative" : "");
 
-            card.innerHTML = `
-                <div class="label">${c.label}</div>
-                <div class="value">
-                    ${c.balance.toLocaleString("en-US", {
-                        style: "currency",
-                        currency: "USD",
-                        maximumFractionDigits: 0
-                    })}
-                </div>
-            `;
+        (data.categories ?? []).forEach(c => {
+            const budget  = c.budget  ?? 0;
+            const balance = c.balance ?? 0;
+
+            // Burn rate calculation
+            const spent     = budget > 0 ? budget - balance : 0;
+            const spentPct  = budget > 0
+                ? Math.min(Math.round((spent / budget) * 100), 100)
+                : 0;
+            const projSpend = dom > 0
+                ? Math.round((spent / dom) * dim)
+                : spent;
+            const projBal   = budget - projSpend;
+
+            // Status
+            let status = "ok";
+            if (budget > 0 && spentPct > monthPct + 5)       status = "over";
+            else if (budget > 0 && spentPct > monthPct - 5)  status = "tight";
+
+            const badgeText = status === "ok"    ? "on track"
+                            : status === "over"  ? "over pace"
+                            : "watch it";
+
+            const card = document.createElement("div");
+            card.className = "card " + (status !== "ok" ? status : "");
+
+            card.innerHTML =
+                '<div class="card-label">' + c.label + '</div>' +
+                '<div class="card-value">' + fmt(balance) + '</div>' +
+                '<div class="pace-track">' +
+                    '<div class="pace-month" style="width:' + monthPct + '%"></div>' +
+                    '<div class="pace-spent ' + status + '" style="width:' + spentPct + '%"></div>' +
+                '</div>' +
+                '<div class="card-footer">' +
+                    '<span class="badge ' + status + '">' + badgeText + '</span>' +
+                    '<span class="card-proj">proj. ' + fmt(projBal) + '</span>' +
+                '</div>';
 
             grid.appendChild(card);
         });
 
-        // As-of footer
-        document.getElementById("asOf").textContent =
-            "As of " + data.as_of;
+        // --- Contingency tile ---
+        if (data.contingency !== undefined) {
+            document.getElementById("contingencyValue").textContent =
+                fmt(data.contingency);
+            document.getElementById("contingencyTile").style.display = "flex";
+        }
+
+        // --- Footer ---
+        document.getElementById("asOf").textContent = "As of " + data.as_of;
     })
     .catch(err => {
         document.getElementById("heroValue").textContent = "Error";
         console.error(err);
     });
 </script>
-
 </body>
 </html>
