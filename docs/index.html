@@ -1,181 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>RAMP Gauge</title>
-<style>
-* { box-sizing: border-box; }
-
-body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: #0f172a;
-    color: #e5e7eb;
-}
-
-.header {
-    padding: 16px;
-    text-align: center;
-    font-size: 22px;
-    font-weight: 600;
-    background: #020617;
-}
-
-/* Hero - Total Available */
-.hero {
-    margin: 16px 16px 0;
-    padding: 20px;
-    background: #020617;
-    border-radius: 16px;
-    text-align: center;
-}
-.hero-label { font-size: 14px; opacity: 0.8; }
-.hero-value  { margin-top: 6px; font-size: 36px; font-weight: 700; }
-
-/* Month progress bar under hero */
-.month-bar-wrap {
-    margin: 10px 0 0;
-}
-.month-bar-meta {
-    display: flex;
-    justify-content: space-between;
-    font-size: 11px;
-    opacity: 0.55;
-    margin-bottom: 4px;
-}
-.month-bar-track {
-    height: 4px;
-    background: rgba(255,255,255,0.12);
-    border-radius: 2px;
-}
-.month-bar-fill {
-    height: 4px;
-    background: rgba(255,255,255,0.35);
-    border-radius: 2px;
-}
-
-/* Category grid */
-.grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    padding: 12px 16px;
-}
-
-/* Category cards */
-.card {
-    background: #020617;
-    border-radius: 14px;
-    padding: 14px 14px 10px;
-    text-align: left;
-    border: 1px solid rgba(255,255,255,0.04);
-}
-.card.over  { border-color: rgba(239,68,68,0.5); }
-.card.tight { border-color: rgba(245,158,11,0.5); }
-
-.card-label { font-size: 12px; opacity: 0.75; margin-bottom: 2px; }
-
-.card-value {
-    font-size: 24px;
-    font-weight: 700;
-    margin-bottom: 8px;
-}
-.card.over  .card-value { color: #f87171; }
-.card.tight .card-value { color: #fbbf24; }
-
-/* Dual pace bar */
-.pace-track {
-    height: 3px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 2px;
-    position: relative;
-    margin-bottom: 7px;
-}
-.pace-month {
-    position: absolute;
-    top: 0; left: 0;
-    height: 3px;
-    background: rgba(255,255,255,0.28);
-    border-radius: 2px;
-}
-.pace-spent {
-    position: absolute;
-    top: 0; left: 0;
-    height: 3px;
-    border-radius: 2px;
-}
-.pace-spent.ok    { background: #10b981; }
-.pace-spent.tight { background: #f59e0b; }
-.pace-spent.over  { background: #ef4444; }
-
-/* Card footer row */
-.card-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.badge {
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 7px;
-    border-radius: 20px;
-}
-.badge.ok    { background: rgba(16,185,129,0.18); color: #6ee7b7; }
-.badge.tight { background: rgba(245,158,11,0.18); color: #fcd34d; }
-.badge.over  { background: rgba(239,68,68,0.18);  color: #fca5a5; }
-
-.card-proj { font-size: 10px; opacity: 0.45; }
-
-/* Contingency tile - full width below grid */
-.contingency {
-    margin: 0 16px 4px;
-    padding: 14px 18px;
-    background: #020617;
-    border-radius: 14px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border: 1px solid rgba(255,255,255,0.04);
-}
-.contingency-label { font-size: 13px; opacity: 0.75; }
-.contingency-value { font-size: 22px; font-weight: 700; }
-
-.footer {
-    text-align: center;
-    font-size: 12px;
-    opacity: 0.5;
-    padding: 10px 0 24px;
-}
-</style>
-</head>
-
-<body>
-<div class="header">RAMP Gauge</div>
-
-<div class="hero">
-    <div class="hero-label">Total Available</div>
-    <div id="heroValue" class="hero-value">$—</div>
-    <div class="month-bar-wrap">
-        <div class="month-bar-meta">
-            <span id="monthLabel">Month</span>
-            <span id="monthPct">—</span>
-        </div>
-        <div class="month-bar-track">
-            <div id="monthBarFill" class="month-bar-fill" style="width:0%"></div>
-        </div>
-    </div>
-</div>
-
-<div id="grid" class="grid"></div>
-
-<div id="contingencyTile" class="contingency" style="display:none">
-    <span class="contingency-label">Budget Contingency</span>
-    <span id="contingencyValue" class="contingency-value">$—</span>
-</div>
-
-<div id="asOf" class="footer"></div>
-
 <script>
 function fmt(n) {
     return Math.round(n).toLocaleString("en-US", {
@@ -204,6 +26,22 @@ fetch("data/ramp_gauge.json")
         // --- Category cards ---
         const grid = document.getElementById("grid");
 
+        // Pace thresholds (2026_07_06 rewrite):
+        // Compares spend RATE (spentPct) to how far into the month we are
+        // (monthPct) as a RATIO, not a fixed point-band. A fixed +/-5 point
+        // band was flagging routine early-month purchases as "over pace"
+        // because monthPct is naturally tiny in the first week (e.g. day 6
+        // of 31 = 19%), making the green zone unrealistically narrow.
+        //
+        // Guard: a category can't flip to "tight"/"over" purely on a scary
+        // ratio unless it has also actually spent a meaningful percentage
+        // of its budget (>=15% / >=25%). This stops a single early-month
+        // purchase from tripping red/yellow when monthPct is near zero.
+        const OVER_RATIO   = 3.0;
+        const OVER_MINPCT  = 25;
+        const TIGHT_RATIO  = 2.0;
+        const TIGHT_MINPCT = 15;
+
         (data.categories ?? []).forEach(c => {
             const budget  = c.budget  ?? 0;
             const balance = c.balance ?? 0;
@@ -218,10 +56,19 @@ fetch("data/ramp_gauge.json")
                 : spent;
             const projBal   = budget - projSpend;
 
-            // Status
+            // Status - ratio of spend-rate to month-elapsed-rate, gated by
+            // a minimum percent-of-budget-spent so early-month noise can't
+            // trigger a false flag.
+            const ratio = monthPct > 0
+                ? spentPct / monthPct
+                : (spentPct > 0 ? 99 : 0);
+
             let status = "ok";
-            if (budget > 0 && spentPct > monthPct + 5)       status = "over";
-            else if (budget > 0 && spentPct > monthPct - 5)  status = "tight";
+            if (budget > 0 && ratio > OVER_RATIO && spentPct >= OVER_MINPCT) {
+                status = "over";
+            } else if (budget > 0 && ratio > TIGHT_RATIO && spentPct >= TIGHT_MINPCT) {
+                status = "tight";
+            }
 
             const badgeText = status === "ok"    ? "on track"
                             : status === "over"  ? "over pace"
@@ -260,5 +107,3 @@ fetch("data/ramp_gauge.json")
         console.error(err);
     });
 </script>
-</body>
-</html>
