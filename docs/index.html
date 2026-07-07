@@ -208,53 +208,33 @@ fetch("data/ramp_gauge.json")
         // --- Category cards ---
         const grid = document.getElementById("grid");
 
-        // Pace thresholds (2026_07_06 rewrite):
-        // Compares spend RATE (spentPct) to how far into the month we are
-        // (monthPct) as a RATIO, not a fixed point-band. A fixed +/-5 point
-        // band was flagging routine early-month purchases as "over pace"
-        // because monthPct is naturally tiny in the first week (e.g. day 6
-        // of 31 = 19%), making the green zone unrealistically narrow.
-        //
-        // Guard: a category can't flip to "tight"/"over" purely on a scary
-        // ratio unless it has also actually spent a meaningful percentage
-        // of its budget (>=15% / >=25%). This stops a single early-month
-        // purchase from tripping red/yellow when monthPct is near zero.
-        const OVER_RATIO   = 3.0;
-        const OVER_MINPCT  = 25;
-        const TIGHT_RATIO  = 2.0;
-        const TIGHT_MINPCT = 15;
+        // Status thresholds (2026_07_07 rewrite):
+        // Simple static thresholds on % of budget spent - no longer tied
+        // to day-of-month/pace ratio, which wasn't intuitive to read at a
+        // glance. Badge now shows the actual percentage used instead of a
+        // generic label, so the color is self-explanatory.
+        const OVER_PCT  = 95;  // red  : > 95% of budget spent
+        const TIGHT_PCT = 75;  // amber: >= 75% of budget spent
 
         (data.categories ?? []).forEach(c => {
             const budget  = c.budget  ?? 0;
             const balance = c.balance ?? 0;
 
             // Burn rate calculation
-            const spent     = budget > 0 ? budget - balance : 0;
-            const spentPct  = budget > 0
+            const spent    = budget > 0 ? budget - balance : 0;
+            const spentPct = budget > 0
                 ? Math.min(Math.round((spent / budget) * 100), 100)
                 : 0;
-            const projSpend = dom > 0
-                ? Math.round((spent / dom) * dim)
-                : spent;
-            const projBal   = budget - projSpend;
 
-            // Status - ratio of spend-rate to month-elapsed-rate, gated by
-            // a minimum percent-of-budget-spent so early-month noise can't
-            // trigger a false flag.
-            const ratio = monthPct > 0
-                ? spentPct / monthPct
-                : (spentPct > 0 ? 99 : 0);
-
+            // Status - static % of budget spent, independent of month pace.
             let status = "ok";
-            if (budget > 0 && ratio > OVER_RATIO && spentPct >= OVER_MINPCT) {
+            if (budget > 0 && spentPct > OVER_PCT) {
                 status = "over";
-            } else if (budget > 0 && ratio > TIGHT_RATIO && spentPct >= TIGHT_MINPCT) {
+            } else if (budget > 0 && spentPct >= TIGHT_PCT) {
                 status = "tight";
             }
 
-            const badgeText = status === "ok"    ? "on track"
-                            : status === "over"  ? "over pace"
-                            : "watch it";
+            const badgeText = spentPct + "% used";
 
             const card = document.createElement("div");
             card.className = "card " + (status !== "ok" ? status : "");
@@ -268,7 +248,7 @@ fetch("data/ramp_gauge.json")
                 '</div>' +
                 '<div class="card-footer">' +
                     '<span class="badge ' + status + '">' + badgeText + '</span>' +
-                    '<span class="card-proj">proj. ' + fmt(projBal) + '</span>' +
+                    '<span class="card-proj">' + fmt(budget) + ' budget</span>' +
                 '</div>';
 
             grid.appendChild(card);
